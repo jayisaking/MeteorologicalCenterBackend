@@ -3,13 +3,15 @@ import time
 import math
 import requests
 import numpy as np
+import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from urllib.parse import urljoin
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.select import Select
 
 
 import math
@@ -53,7 +55,91 @@ def to_level(PGA, level):
             r = m - 1
     return levels[l]
 
-def reservoir_crawler():
+
+def craw_reservoir_by_date(year, month, day, hour=0):
+    
+    # if year < 1970 or year >
+    reservoir = ["石門水庫", "寶山第二水庫", "永和山水庫", "鯉魚潭水庫", "德基水庫",
+    "南化水庫", "曾文水庫", "烏山頭水庫"]
+
+    times = []
+    effective_storage_capacity = []
+    storage_ratio = []
+
+    # # Set up Chrome options
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # Run Chrome in headless mode
+
+    # Set up the ChromeDriver service
+    webdriver_service = Service("chromedriver")
+
+    # Create a new instance of the Chrome driver
+    driver = webdriver.Chrome(service=webdriver_service, options=chrome_options)
+    driver.get("https://fhy.wra.gov.tw/ReservoirPage_2011/Statistics.aspx")
+
+    # print(driver.page_source)
+    # Locate the year dropdown menu
+    year_dropdown = driver.find_element(By.ID, 'ctl00_cphMain_ucDate_cboYear')
+
+    # Create a Select object for the dropdown
+    year_select = Select(year_dropdown)
+
+    # Select the desired year
+    year_select.select_by_value(str(year))
+
+    # Locate the month dropdown menu
+    month_dropdown = driver.find_element(By.ID, 'ctl00_cphMain_ucDate_cboMonth')
+
+    # Create a Select object for the dropdown
+    month_select = Select(month_dropdown)
+
+    # Select the desired month
+    month_select.select_by_value(str(month))
+
+    # Locate the day dropdown menu
+    day_dropdown = driver.find_element(By.ID, 'ctl00_cphMain_ucDate_cboDay')
+
+    # Create a Select object for the dropdown
+    day_select = Select(day_dropdown)
+
+    # Select the desired day
+    day_select.select_by_value(str(day))
+
+    hour_dropdown = driver.find_element(By.ID, 'ctl00_cphMain_ucDate_cboHour')
+
+    # Create a Select object for the dropdown
+    hour_select = Select(hour_dropdown)
+
+    # Select the desired hour
+    hour_select.select_by_value(str(hour))
+
+    # print(driver.page_source)
+    submit_button = driver.find_element(By.ID, 'ctl00_cphMain_btnQuery')
+    submit_button.click()
+
+    # Wait for the data to be displayed (You can use WebDriverWait if needed)
+    time.sleep(0.2)
+
+    # Extract the data from the page
+    data_element = driver.find_element(By.ID, 'ctl00_cphMain_gvList')
+    data = [] 
+    for d in data_element.text.split('\n'):
+        d = d.split(' ')
+        if d[0] in reservoir:
+            data += [d[:9]+d[10:]]
+            data[-1][1] += ('-' + data[-1][2])
+            for i in range(3, len(data[-1])):
+                if data[-1][i][0].isdigit():
+                    data[-1][i-1] = float(data[-1][i].replace(',', ''))
+                else:
+                    data[-1][i-1] = data[-1][i]
+            data[-1].pop()
+            
+    # print(data)
+    # print(len(data))
+    return data
+
+def reservoir_crawler(year1, month1, day1, year2, month2, day2):
     '''
     水情時間: time
     有效蓄水量(萬立方公尺): effective_storage_capacity
@@ -65,48 +151,78 @@ def reservoir_crawler():
     '''
     reservoir = ["石門水庫", "寶山第二水庫", "永和山水庫", "鯉魚潭水庫", "德基水庫",
     "南化水庫", "曾文水庫", "烏山頭水庫"]
+    month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
     time = []
     effective_storage_capacity = []
     storage_ratio = []
 
-    url = "https://fhy.wra.gov.tw/ReservoirPage_2011/Statistics.aspx"
-
-    # Send a GET request to the website
-    response = requests.get(url)
-
-    # Create a BeautifulSoup object to parse the HTML content
-    soup = BeautifulSoup(response.content, "html.parser")
-    # print(soup)
-    # Find the table element with the desired data
-    table = soup.find("table", {"id": "ctl00_cphMain_gvList"})
-    # print(table)
-    # # Extract the table headers
-    headers = [header.text for header in table.find_all("th")]
-    # print(headers[0] == "水庫名稱")
-    # # Extract the table rows
-
-    for row in table.find_all("tr"):
-        r = [cell.text for cell in row.find_all("td")]
-        if len(r) and r[0][0] == '\n' and r[0][1:-1] in reservoir:
-            time += [r[1]]
-            if r[6][0] == '-':
-                effective_storage_capacity += [0]
+    data = []
+    # first year
+    if year1 < year2:
+        for m in range(month1, 13):
+            if m == month1:
+                for d in range(day1, month[m-1]+1):
+                    for h in range(24):
+                        data += craw_reservoir_by_date(year1, m, d, h)
             else:
-                effective_storage_capacity += [float(r[6].replace(',', ''))]
-            if r[7][0] == '-':
-                storage_ratio += [0]
+                for d in range(1, month[m-1]+1):
+                    for h in range(24):
+                        data += craw_reservoir_by_date(year1, m, d, h)
+    if year1 + 1 < year2:
+        for y in range(year1 + 1, year2):
+            for m in range(1, 13):
+                for d in range(1, month[m-1]+1):
+                    for h in range(24):
+                        data += craw_reservoir_by_date(y, m, d, h)
+    if year1 == year2:
+        for m in range(month1, month2+1):
+            if m == month1 == month2:
+                for d in range(day1, day2+1):
+                    for h in range(24):
+                        data += craw_reservoir_by_date(year1, m, d, h)
+            elif m == month1:
+                for d in range(day1, month[m-1]+1):
+                    for h in range(24):
+                        data += craw_reservoir_by_date(year1, m, d, h)
+            elif m == month2:
+                for d in range(1, day2+1):
+                    for h in range(24):
+                        data += craw_reservoir_by_date(year1, m, d, h)
             else:
-                storage_ratio += [float(r[7][:-2])]
+                for d in range(1, month[m-1]+1):
+                    for h in range(24):
+                        data += craw_reservoir_by_date(year1, m, d, h)
+    else:
+        for m in range(1, month2+1):
+            if m == month2:
+                for d in range(1, day2+1):
+                    for h in range(24):
+                        data += craw_reservoir_by_date(year2, m, d, h)
+            else:
+                for d in range(1, month[m-1]+1):
+                    for h in range(24):
+                        data += craw_reservoir_by_date(year2, m, d, h)
+    # print(data)
+    # print(len(data))
+    # print(len(data[0]))
 
-    print(time)
-    print(effective_storage_capacity)
-    print(storage_ratio)
+    columns = ['水庫名稱', '時間', '本日集水區累積降雨量(mm)', '進流量(cms)', '水位(公尺)', '滿水位(公尺)', '有效蓄水量(萬立方公尺)', 
+    '蓄水百分比(%)', '取水流量(cms)', '發電放水口', '排砂道/PRO', '排洪隧道', '溢洪道', '其他', '小計', '目前狀態', '預定時間', '預定放流量(cms)']
+		
+							
+    # print(len(columns))
+    df = pd.DataFrame(data, columns=columns)
+    df = df.replace('--', float('nan'))
+    df.set_index('水庫名稱', inplace=True)
+    # reservoir_name = '石門水庫'
+    # data_value = df.loc[reservoir_name]
+    # print(data_value)
 
-    # # Print the headers and rows
-    # print("Headers:", headers)
-    # print("Rows:", rows)
+    return df
 
+
+    
 def electricity_crawler():
 
     # Set up Chrome options
@@ -114,8 +230,6 @@ def electricity_crawler():
     chrome_options.add_argument("--headless")  # Run Chrome in headless mode
 
     # Set up the ChromeDriver service
-    # webdriver_service = Service("/usr/local/bin/chromedriver")
-    # webdriver_service = Service("/Users/jimmycv07/Library/CloudStorage/GoogleDrive-jimmy.en07@nycu.edu.tw/My Drive/NCTU/Fifth-2/Cloud_native_development/chromedriver")
     webdriver_service = Service("chromedriver")
 
     # Create a new instance of the Chrome driver
@@ -158,9 +272,6 @@ def earthquake_crawler():
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run Chrome in headless mode
 
-    # Set up the ChromeDriver service
-    # webdriver_service = Service("/usr/local/bin/chromedriver")
-    # webdriver_service = Service("/Users/jimmycv07/Library/CloudStorage/GoogleDrive-jimmy.en07@nycu.edu.tw/My Drive/NCTU/Fifth-2/Cloud_native_development/chromedriver")
     webdriver_service = Service("chromedriver")
 
     # Create a new instance of the Chrome driver
@@ -241,6 +352,6 @@ def earthquake_crawler():
 
 
 if __name__ == "__main__":
-    # reservoir_crawler()
+    reservoir_crawler(2022, 4, 11, 2022, 4, 11)
     # electricity_crawler()
-    earthquake_crawler()
+    # earthquake_crawler()
