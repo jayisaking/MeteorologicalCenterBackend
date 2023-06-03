@@ -38,8 +38,20 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 
     return distance
 
-def to_level():
-    return 
+def to_level(PGA, level):
+    levels = [0, 1, 2, 3, 4, 5, 5.5, 6, 6.5, 7]
+    PGAs = [0.8, 2.5, 8, 25, 80, 140, 250, 440, 800]
+    if level >= 5:
+        PGAs = [0.2, 0.7, 1.9, 5.7, 15, 30, 50, 80, 140]
+    l, r = 0, len(PGAs) - 1
+    while l <= r:
+        m = (l + r) // 2 
+        # print(l, m, r)
+        if PGAs[m] < PGA:
+            l = m + 1
+        else:
+            r = m - 1
+    return levels[l]
 
 def reservoir_crawler():
     '''
@@ -168,7 +180,7 @@ def earthquake_crawler():
     magnitude = []
     depth = []
     location = []
-    level = []
+    levels = []
     longitude = []
     latitude = []
     pattern = r"var locations = \[(.*?)\];"
@@ -194,25 +206,29 @@ def earthquake_crawler():
             magnitude += [float(location_values[3])]
             depth += [float(location_values[4])]
             location += [location_values[5]]
-            level += [location_values[6]]
+            levels += [location_values[6]]
             longitude += [float(location_values[7])]
             latitude += [float(location_values[8])]
 
             # Do further processing with the extracted values
-    print(identifier, date_time, magnitude, depth, location, level, longitude, latitude)
+    print(identifier, date_time, magnitude, depth, location, levels, longitude, latitude)
     # print(len(identifier), len(date_time), len(magnitude), len(depth), len(location), len(level), len(longitude), len(latitude))
     factory_longitude = [121.01, 120.618, 120.272]
     factory_latitude = [24.773, 24.2115, 23.1135]
     factory_si = [1.758, 1.063, 1.968]
-    factory_PGA = []
-    for i, l in enumerate(level):
+    factory_level = []
+    for i, l in enumerate(levels):
         if int(l) > 3:
-            PGA = []
+            level = []
             for j in range(len(factory_si)):
                 r = np.sqrt(depth[i] ** 2 + calculate_distance(factory_longitude[j], factory_latitude[j], longitude[i], latitude[i]) ** 2)
-                PGA += [1.657 * np.exp(1.533*magnitude[i]) * (r**-1.607) * factory_si[j]]
-            factory_PGA += [PGA]
-    print(factory_PGA)
+                PGA = 1.657 * np.exp(1.533*magnitude[i]) * (r**-1.607) * factory_si[j]
+                if int(l) >= 5:
+                    level += [to_level(PGA/8.6561, int(l))]
+                else:
+                    level += [to_level(PGA, int(l))]
+            factory_level += [level]
+    print(factory_level)
    
     # Close the webdriver
     driver.quit()
@@ -225,6 +241,6 @@ def earthquake_crawler():
 
 
 if __name__ == "__main__":
-    reservoir_crawler()
+    # reservoir_crawler()
     # electricity_crawler()
-    # earthquake_crawler()
+    earthquake_crawler()
