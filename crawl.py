@@ -288,7 +288,7 @@ def electricity_crawler():
 
     if response.status_code == 200:
         rows = response.text.split('\n')
-        
+
     columns = ['區', '時間', '供電(萬瓩)', '負載(萬瓩)']
     supply_ratio = [0.245, 0.274, 0.476]
     load_ratio = [0.358, 0.27, 0.357]
@@ -309,21 +309,6 @@ def electricity_crawler():
     df.set_index('區', inplace=True)
 
     return df
-
-def test():
-
-    url = 'https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/sys_dem_sup.csv'
-
-    response = requests.get(url)
-
-    if response.status_code == 200:
-        data = response.text
-        print(len(data))
-        print(len(data.split('\n')))
-        # Process the data as needed
-    else:
-        print('Error: Failed to fetch data from the API')
-
 
 def earthquake_crawler():
 
@@ -415,4 +400,3 @@ if __name__ == "__main__":
     electricity_crawler()
     # earthquake_crawler()
     # craw_electricity_by_date(2023, 4, 11)
-    # test()
