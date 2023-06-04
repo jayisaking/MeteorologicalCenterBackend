@@ -1,0 +1,42 @@
+{
+    "db_name": "test1",
+    "db_user": "jaysun",
+    "db_password": "",
+    "db_host": "/tmp",
+    "db_port": "5432",
+    
+    "endpoint_host": "127.0.0.1",
+    "endpoint_port": 8000,
+    "endpoint_allowed_origins": ["*"],
+
+    "data_allowed_origins": ["*"],
+
+    "reservoir_host": "127.0.0.1",
+    "reservoir_port": 7000,
+    "reservoir_allowed_origins": ["*"],
+    "reservoir_schema": "reservoir",
+    "reservoir_tables": [{"name": "general", 
+                          "columns": ["水庫名稱", "時間", "本日集水區累積降雨量(mm)", "進流量(cms)", "水位(公尺)", "滿水位(公尺)", "有效蓄水量(萬立方公尺)", 
+                                      "蓄水百分比(%)", "取水流量(cms)", "發電放水口", "排砂道/PRO", "排洪隧道", "溢洪道", "其他", "小計", "目前狀態", "預定時間", "預定放流量(cms)"],
+                          "types": ["VARCHAR(100)", "TIMESTAMP", "float", "float", "float", "float", "float", "float", 
+                                    "float", "VARCHAR(100)", "VARCHAR(100)", "VARCHAR(100)", "VARCHAR(100)", "VARCHAR(100)", "float", "VARCHAR(100)", "VARCHAR(100)", "float"],
+                          "primary_keys": ["水庫名稱", "時間"]}],
+
+    "electricity_host": "127.0.0.1",
+    "electricity_port": 8551,
+    "electricity_allowed_origins": ["*"],
+    "electricity_schema": "electricity",
+    "electricity_tables": [{"name": "general",
+                            "columns": ["區", "時間", "供電(萬瓩)", "負載(萬瓩)"],
+                            "types": ["VARCHAR(100)", "TIMESTAMP", "float", "float"],
+                            "primary_keys": ["區", "時間"]}],
+
+    "earthquake_host": "127.0.0.1",
+    "earthquake_port": 8400,
+    "earthquake_allowed_origins": ["*"],
+    "earthquake_schema": "earthquake",
+    "earthquake_tables": [{"name": "general",
+                           "columns": ["區", "時間", "震度階級", "震央經度", "震央緯度", "震央規模", "震央深度", "震央震度階級"],
+                           "types": ["VARCHAR(100)", "TIMESTAMP", "float", "float", "float", "float", "float", "int"],
+                           "primary_keys": ["區", "時間"]}]
+}
