@@ -12,6 +12,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.select import Select
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.keys import Keys
+
 
 
 import math
@@ -153,10 +157,6 @@ def reservoir_crawler(year1, month1, day1, year2, month2, day2):
     "南化水庫", "曾文水庫", "烏山頭水庫"]
     month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
-    time = []
-    effective_storage_capacity = []
-    storage_ratio = []
-
     data = []
     # first year
     if year1 < year2:
@@ -222,49 +222,108 @@ def reservoir_crawler(year1, month1, day1, year2, month2, day2):
     return df
 
 
-    
-def electricity_crawler():
 
-    # Set up Chrome options
+def craw_electricity_by_date(year, month, day):
+    
+    # # Set up Chrome options
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run Chrome in headless mode
+    # chrome_options.add_argument("--headless")  # Run Chrome in headless mode
 
     # Set up the ChromeDriver service
     webdriver_service = Service("chromedriver")
 
     # Create a new instance of the Chrome driver
     driver = webdriver.Chrome(service=webdriver_service, options=chrome_options)
+    driver.get("https://www.taipower.com.tw/tc/page.aspx?mid=210&cid=340&cchk=eac92988-526f-44e3-a911-1564395de297")
+    # Find the iframe element
+    # iframe = driver.find_element(By.XPATH, '//div[@id="about_box"]/div[@class="animation"]/p/iframe')
+    # Find the iframe element
+    # time.sleep(20)
+    try:
+        iframe = driver.find_element(By.ID, 'IframeId')
+    except:
+        print(f"Failed at {year}-{month}-{day}")
 
-    # Load the webpage
-    url = "https://www.taiwanstat.com/realtime/power/"
-    # url = "https://www.taipower.com.tw/tc/page.aspx?mid=206&cid=403&cchk=1f5269ec-633e-471c-9727-22345366f0be"
-    driver.get(url)
+    driver.switch_to.frame(iframe)
+    # date_picker = WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID, 'datepicker')))
+    # date_picker = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "datepicker")))
+    date_picker = driver.find_element(By.ID, "datepicker")
+    month = str(month) if month > 9 else '0' + str(month)
+    day = str(day) if day > 9 else '0' + str(day)
+    date = str(year) + month + day
+    # driver.execute_script("arguments[0].setAttribute('style', 'border: 2px solid red;');", date_picker)
+    driver.execute_script("arguments[0].value = arguments[1];", date_picker, date)
+    # driver.execute_script("arguments[0].value = '20230411';", date_picker)
+    # driver.execute_script("arguments[0].click();", date_picker)
+    # Press the Enter key
+    date_picker.send_keys(Keys.ENTER)
+    date_picker.send_keys(Keys.ENTER)
+    # driver.execute_script("arguments[0].dispatchEvent(new Event('change'));", date_picker)
+
+    time.sleep(3)
+    # date_picker.click()
+
     # print(driver.page_source)
+    supply = float(driver.find_element(By.ID, "supply1").text)
+    load = float(driver.find_element(By.ID, "load1").text)
+    date = driver.find_element(By.ID, "date1").text[:-5].replace('/', '-')
+    supply_ratio = [0.245, 0.274, 0.476]
+    load_ratio = [0.358, 0.27, 0.357]
+    area = ['北', '中', '南']
+    data = []
+    for i in range(len(supply_ratio)):
+        data += [[area[i], date, round(supply * supply_ratio[i], 6), round(load * load_ratio[i], 6)]]
+    # print(supply, load, date)
 
-    element = 0
-    electricity = []
-    target = [
-        "北部即時發電量", "北部即時用電量",
-        "中部即時發電量", "中部即時用電量",
-        "南部即時發電量", "南部即時用電量",
-        "東部即時發電量", "東部即時用電量"
-    ]
-    for string in target:
-        xpath = f"//h5[contains(text(), '{string}')]"
-        # print(driver.find_element(By.XPATH, xpath).text)
-        # e.append(driver.find_element(By.XPATH, xpath).text.split('：')[1])
-        if element:
-            element = element.find_element(By.XPATH, xpath)
-        else:
-            element = driver.find_element(By.XPATH, xpath)
+    return data
+    
+def electricity_crawler(year1, month1, day1, year2, month2, day2):
+    '''
+    2022/01 - 2023/04
+    '''
+    columns = ['區', '時間', '供電(萬瓩)', '負載(萬瓩)']
+    month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    data = []
+    # first year
+    if year1 < year2:
+        for m in range(month1, 13):
+            if m == month1:
+                for d in range(day1, month[m-1]+1):
+                        data += craw_electricity_by_date(year1, m, d)
+            else:
+                for d in range(1, month[m-1]+1):
+                        data += craw_electricity_by_date(year1, m, d)
+    if year1 == year2:
+        for m in range(month1, month2+1):
+            if m == month1 == month2:
+                for d in range(day1, day2+1):
+                        data += craw_electricity_by_date(year1, m, d)
+            elif m == month1:
+                for d in range(day1, month[m-1]+1):
+                        data += craw_electricity_by_date(year1, m, d)
+            elif m == month2:
+                for d in range(1, day2+1):
+                        data += craw_electricity_by_date(year1, m, d)
+            else:
+                for d in range(1, month[m-1]+1):
+                        data += craw_electricity_by_date(year1, m, d)
+    else:
+        for m in range(1, month2+1):
+            if m == month2:
+                for d in range(1, day2+1):
+                        data += craw_electricity_by_date(year2, m, d)
+            else:
+                for d in range(1, month[m-1]+1):
+                        data += craw_electricity_by_date(year2, m, d)
+    # print(data)
+    # print(len(data))
+							
+    # print(len(columns))
+    df = pd.DataFrame(data, columns=columns)
+    df = df.replace('--', float('nan'))
+    df.set_index('區', inplace=True)
 
-        # electricity.append(element.text)
-        electricity.append(element.text.split('：')[1])
-
-    print(electricity) 
-
-    # Quit the browser
-    driver.quit()
+    return df
 
 def earthquake_crawler():
 
@@ -352,6 +411,7 @@ def earthquake_crawler():
 
 
 if __name__ == "__main__":
-    reservoir_crawler(2022, 4, 11, 2022, 4, 11)
-    # electricity_crawler()
+    # reservoir_crawler(2022, 4, 11, 2022, 4, 11)
+    electricity_crawler(2022, 12, 25, 2023, 1, 5)
     # earthquake_crawler()
+    # craw_electricity_by_date(2023, 4, 11)
