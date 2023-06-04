@@ -17,10 +17,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 
-
-import math
-
-
 def calculate_distance(lat1, lon1, lat2, lon2):
     # Radius of the Earth in kilometers
     earth_radius = 6371
@@ -276,8 +272,31 @@ def craw_electricity_by_date(year, month, day):
     # print(supply, load, date)
 
     return data
-    
-def electricity_crawler():
+
+
+def current_electricity_crawler():
+    url = "https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/genloadareaperc.csv"
+
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        rows = response.text.split('\n')[0].split(',')
+
+    columns = ['區', '時間', '供電(萬瓩)', '負載(萬瓩)']
+
+    area = ['北', '中', '南']
+    data = []
+    for i in range(len(area)):
+        data += [[area[i], rows[0].replace(' ', '-'), float(rows[1 + 2*i]), float(rows[2 + 2*i])]]
+
+    # print(data)
+    df = pd.DataFrame(data, columns=columns)
+    df = df.replace('--', float('nan'))
+    df.set_index('區', inplace=True)
+
+    return df
+
+def history_electricity_crawler():
     '''
     2022/01 - 2023/04
     '''
@@ -386,7 +405,7 @@ def current_earthquake_crawler():
                 data += [[area[j], date_time[i], to_level(PGA/8.6561, int(l))]]
             else:
                 data += [[area[j], date_time[i], to_level(PGA, int(l))]]
-                
+
     # print(len(levels))
     # print(data)
     # print(len(data))
@@ -498,11 +517,10 @@ def history_earthquake_crawler():
 
 
 
-
-
 if __name__ == "__main__":
     # reservoir_crawler(2022, 4, 11, 2022, 4, 11)
     # electricity_crawler()
     # history_earthquake_crawler()
-    current_earthquake_crawler()
+    current_electricity_crawler()
+    # current_earthquake_crawler()
     # craw_electricity_by_date(2023, 4, 11)
