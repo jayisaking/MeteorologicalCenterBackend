@@ -310,25 +310,29 @@ def electricity_crawler():
 
     return df
 
-def earthquake_crawler():
 
+def current_earthquake_crawler():
+
+    columns = ['區', '時間', '震度階級']
+    area = ['北', '中', '南']
     # # Set up Chrome options
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run Chrome in headless mode
+    # chrome_options.add_argument("--headless")  # Run Chrome in headless mode
 
     webdriver_service = Service("chromedriver")
 
     # Create a new instance of the Chrome driver
     driver = webdriver.Chrome(service=webdriver_service, options=chrome_options)
+    driver.get('https://scweb.cwb.gov.tw/')
 
     # Start the webdriver
     # driver = webdriver.Chrome()
-
+    # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    # body = driver.find_element(By.TAG_NAME, "body")
+    # body.send_keys(Keys.END)
+    # time.sleep(10)
     # Load the webpage
-    driver.get('https://scweb.cwb.gov.tw/')
 
-    # target_index = 4  # Specify the index of the desired element (0 for the first occurrence, 1 for the second, and so on)
-    # target_elements = driver.find_elements(By.XPATH, '//div[@class="level green"]')
     # Extract the portion containing the locations variable
     identifier = []
     date_time = []
@@ -357,39 +361,140 @@ def earthquake_crawler():
 
             # Access the desired values
             identifier += [location_values[0]]
-            date_time += [location_values[2]]
+            date_time += [location_values[2].replace(' ', '-')]
             magnitude += [float(location_values[3])]
             depth += [float(location_values[4])]
             location += [location_values[5]]
             levels += [location_values[6]]
             longitude += [float(location_values[7])]
             latitude += [float(location_values[8])]
+    # Close the webdriver
+    driver.quit()
 
-            # Do further processing with the extracted values
-    print(identifier, date_time, magnitude, depth, location, levels, longitude, latitude)
+    # print(identifier, date_time, magnitude, depth, location, levels, longitude, latitude)
     # print(len(identifier), len(date_time), len(magnitude), len(depth), len(location), len(level), len(longitude), len(latitude))
     factory_longitude = [121.01, 120.618, 120.272]
     factory_latitude = [24.773, 24.2115, 23.1135]
     factory_si = [1.758, 1.063, 1.968]
-    factory_level = []
+    data = []
+    
     for i, l in enumerate(levels):
-        if int(l) > 3:
-            level = []
-            for j in range(len(factory_si)):
-                r = np.sqrt(depth[i] ** 2 + calculate_distance(factory_longitude[j], factory_latitude[j], longitude[i], latitude[i]) ** 2)
-                PGA = 1.657 * np.exp(1.533*magnitude[i]) * (r**-1.607) * factory_si[j]
-                if int(l) >= 5:
-                    level += [to_level(PGA/8.6561, int(l))]
-                else:
-                    level += [to_level(PGA, int(l))]
-            factory_level += [level]
-    print(factory_level)
-   
-    # Close the webdriver
-    driver.quit()
+        for j in range(len(factory_si)):
+            r = np.sqrt(depth[i] ** 2 + calculate_distance(factory_longitude[j], factory_latitude[j], longitude[i], latitude[i]) ** 2)
+            PGA = 1.657 * np.exp(1.533*magnitude[i]) * (r**-1.607) * factory_si[j]
+            if int(l) >= 5:
+                data += [[area[j], date_time[i], to_level(PGA/8.6561, int(l))]]
+            else:
+                data += [[area[j], date_time[i], to_level(PGA, int(l))]]
+                
+    # print(len(levels))
+    # print(data)
+    # print(len(data))
+    df = pd.DataFrame(data, columns=columns)
+    df = df.replace('--', float('nan'))
+    df.set_index('區', inplace=True)
+
+    return df
 
 
-   
+def history_earthquake_crawler():
+
+    columns = ['區', '時間', '震度階級']
+    area = ['北', '中', '南']
+
+    url = 'https://scweb.cwb.gov.tw/zh-tw/history/ajaxhandler'
+
+    payload = {
+        'draw': '3',
+        'columns[0][data]': '0',
+        'columns[0][name]': 'eqDate',
+        'columns[0][searchable]': 'true',
+        'columns[0][orderable]': 'true',
+        'columns[0][search][value]': '',
+        'columns[0][search][regex]': 'false',
+        'columns[1][data]': '1',
+        'columns[1][name]': 'EastLongitude',
+        'columns[1][searchable]': 'true',
+        'columns[1][orderable]': 'true',
+        'columns[1][search][value]': '',
+        'columns[1][search][regex]': 'false',
+        'columns[2][data]': '2',
+        'columns[2][name]': 'NorthLatitude',
+        'columns[2][searchable]': 'true',
+        'columns[2][orderable]': 'true',
+        'columns[2][search][value]': '',
+        'columns[2][search][regex]': 'false',
+        'columns[3][data]': '3',
+        'columns[3][name]': 'Magnitude',
+        'columns[3][searchable]': 'true',
+        'columns[3][orderable]': 'true',
+        'columns[3][search][value]': '',
+        'columns[3][search][regex]': 'false',
+        'columns[4][data]': '4',
+        'columns[4][name]': 'Depth',
+        'columns[4][searchable]': 'true',
+        'columns[4][orderable]': 'true',
+        'columns[4][search][value]': '',
+        'columns[4][search][regex]': 'false',
+        'order[0][column]': '0',
+        'order[0][dir]': 'desc',
+        'start': '0',
+        'length': '-1',
+        'search[value]': '',
+        'search[regex]': 'false',
+        'EQType': '1',
+        'StartDate': '2017-01-01',
+        'EndDate': '2022-12-04',
+        'magnitudeFrom': '0',
+        'magnitudeTo': '10',
+        'depthFrom': '0',
+        'depthTo': '350',
+        'minLong': '',
+        'maxLong': '',
+        'minLat': '',
+        'maxLat': '',
+        'ddlCity': '',
+        'ddlTown': '',
+        'ddlStation': '',
+        'txtIntensityB': '',
+        'txtIntensityE': '',
+        'txtLon': '',
+        'txtLat': '',
+        'txtKM': ''
+    }
+
+    response = requests.post(url, data=payload)
+
+    if response.status_code == 200:
+        row = response.json()
+        # Process the received data as needed
+        # print(row['data'])
+        # print(row['data'][20])
+        # print(len(row['data']))
+    
+    factory_longitude = [121.01, 120.618, 120.272]
+    factory_latitude = [24.773, 24.2115, 23.1135]
+    factory_si = [1.758, 1.063, 1.968]
+    data = []
+    
+    # __, date time, longitude, latitude, magnitude, depth, level
+    for r in row['data']:
+        # r = r.split(',')
+        for j in range(len(factory_si)):
+            r_ = np.sqrt(float(r[5]) ** 2 + calculate_distance(factory_longitude[j], factory_latitude[j], float(r[2]), float(r[3])) ** 2)
+            PGA = 1.657 * np.exp(1.533*float(r[4])) * (r_**-1.607) * factory_si[j]
+            if int(r[6]) >= 5:
+                data += [[area[j], r[1].replace(' ', '-'), to_level(PGA/8.6561, int(r[6]))]]
+            else:
+                data += [[area[j], r[1].replace(' ', '-'), to_level(PGA, int(r[6]))]]
+
+    # print(data)
+    # print(len(data))
+    df = pd.DataFrame(data, columns=columns)
+    df = df.replace('--', float('nan'))
+    df.set_index('區', inplace=True)
+
+    return df
 
 
 
@@ -397,6 +502,7 @@ def earthquake_crawler():
 
 if __name__ == "__main__":
     # reservoir_crawler(2022, 4, 11, 2022, 4, 11)
-    electricity_crawler()
-    # earthquake_crawler()
+    # electricity_crawler()
+    # history_earthquake_crawler()
+    current_earthquake_crawler()
     # craw_electricity_by_date(2023, 4, 11)
