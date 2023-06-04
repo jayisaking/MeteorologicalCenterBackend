@@ -277,53 +277,53 @@ def craw_electricity_by_date(year, month, day):
 
     return data
     
-def electricity_crawler(year1, month1, day1, year2, month2, day2):
+def electricity_crawler():
     '''
     2022/01 - 2023/04
     '''
+
+    url = 'https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/sys_dem_sup.csv'
+
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        rows = response.text.split('\n')
+        
     columns = ['區', '時間', '供電(萬瓩)', '負載(萬瓩)']
-    month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    supply_ratio = [0.245, 0.274, 0.476]
+    load_ratio = [0.358, 0.27, 0.357]
+    area = ['北', '中', '南']
     data = []
-    # first year
-    if year1 < year2:
-        for m in range(month1, 13):
-            if m == month1:
-                for d in range(day1, month[m-1]+1):
-                        data += craw_electricity_by_date(year1, m, d)
-            else:
-                for d in range(1, month[m-1]+1):
-                        data += craw_electricity_by_date(year1, m, d)
-    if year1 == year2:
-        for m in range(month1, month2+1):
-            if m == month1 == month2:
-                for d in range(day1, day2+1):
-                        data += craw_electricity_by_date(year1, m, d)
-            elif m == month1:
-                for d in range(day1, month[m-1]+1):
-                        data += craw_electricity_by_date(year1, m, d)
-            elif m == month2:
-                for d in range(1, day2+1):
-                        data += craw_electricity_by_date(year1, m, d)
-            else:
-                for d in range(1, month[m-1]+1):
-                        data += craw_electricity_by_date(year1, m, d)
-    else:
-        for m in range(1, month2+1):
-            if m == month2:
-                for d in range(1, day2+1):
-                        data += craw_electricity_by_date(year2, m, d)
-            else:
-                for d in range(1, month[m-1]+1):
-                        data += craw_electricity_by_date(year2, m, d)
+    for r in rows:
+        if r:
+            r = r.split(',')
+            data_ = []
+            for i in range(len(supply_ratio)):
+                data_ += [[area[i], r[0], float(r[1]) * supply_ratio[i] / 10, float(r[2]) * load_ratio[i] / 10]]
+            data += data_
+    
     # print(data)
     # print(len(data))
-							
-    # print(len(columns))
     df = pd.DataFrame(data, columns=columns)
     df = df.replace('--', float('nan'))
     df.set_index('區', inplace=True)
 
     return df
+
+def test():
+
+    url = 'https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/sys_dem_sup.csv'
+
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.text
+        print(len(data))
+        print(len(data.split('\n')))
+        # Process the data as needed
+    else:
+        print('Error: Failed to fetch data from the API')
+
 
 def earthquake_crawler():
 
@@ -412,6 +412,7 @@ def earthquake_crawler():
 
 if __name__ == "__main__":
     # reservoir_crawler(2022, 4, 11, 2022, 4, 11)
-    electricity_crawler(2022, 12, 25, 2023, 1, 5)
+    electricity_crawler()
     # earthquake_crawler()
     # craw_electricity_by_date(2023, 4, 11)
+    # test()
