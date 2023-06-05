@@ -4,6 +4,7 @@ import math
 import requests
 import numpy as np
 import pandas as pd
+from datetime import timedelta
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from urllib.parse import urljoin
@@ -58,99 +59,109 @@ def to_level(PGA, level):
 
 def craw_reservoir_by_date(year, month, day, hour=0):
     
-    # if year < 1970 or year >
-    reservoir = ["石門水庫", "寶山第二水庫", "永和山水庫", "鯉魚潭水庫", "德基水庫",
-    "南化水庫", "曾文水庫", "烏山頭水庫"]
+    payload = {}
+    headers = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'}
+    url = 'https://fhy.wra.gov.tw/ReservoirPage_2011/Statistics.aspx'
 
-    times = []
-    effective_storage_capacity = []
-    storage_ratio = []
+    print(year, month, day, hour)
+    max_retries = 100
+    retry_delay = 1  # Delay in seconds between retries
 
-    # # Set up Chrome options
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run Chrome in headless mode
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            response = requests.post(url, data=payload, headers=headers)
+            # Process the response
+            if response.status_code == 200:
+                # Request was successful
+                break  # Exit the loop if the request succeeds
+        except (requests.exceptions.RequestException, requests.exceptions.ConnectionError):
+            # Handle the exception
+            pass
+        
+        # Wait for the specified delay before retrying
+        # time.sleep(retry_delay)
+        retry_count += 1
+    # print("!!!!!!!!!!!!!!!!!!!!!!!")
 
-    # Set up the ChromeDriver service
-    webdriver_service = Service("chromedriver")
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, 'html.parser')
+        # Find the input element with name '__VIEWSTATE'
+        viewstate = soup.find('input', {'name': '__VIEWSTATE'})
+        # viewstategenerator = soup.find('input', {'name': '__VIEWSTATEGENERATOR'})
+        eventvalidation = soup.find('input', {'name': '__EVENTVALIDATION'})
+        payload['__VIEWSTATE'] = viewstate['value']
+        # payload['__VIEWSTATEGENERATOR'] = viewstategenerator['value']
+        payload['__EVENTVALIDATION'] = eventvalidation['value']
+        # print(viewstate['value'])
+        # print(eventvalidation['value'])
+        payload['__EVENTTARGET'] = 'ctl00$cphMain$btnQuery'
+        payload['ctl00$cphMain$cboSearch'] = '防汛重點水庫'
+        payload['ctl00$cphMain$ucDate$cboYear'] = str(year)
+        payload['ctl00$cphMain$ucDate$cboMonth'] = str(month)
+        payload['ctl00$cphMain$ucDate$cboDay'] = str(day)
+        payload['ctl00$cphMain$ucDate$cboHour'] = str(hour)
+        payload['ctl00$cphMain$ucDate$cboMinute'] = '0'
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                response = requests.post(url, data=payload, headers=headers)
+                # Process the response
+                if response.status_code == 200:
+                    # Request was successful
+                    break  # Exit the loop if the request succeeds
+            except (requests.exceptions.RequestException, requests.exceptions.ConnectionError):
+                # Handle the exception
+                pass
+        
+            # Wait for the specified delay before retrying
+            # time.sleep(retry_delay)
+            retry_count += 1
+        # print(response.text)
 
-    # Create a new instance of the Chrome driver
-    driver = webdriver.Chrome(service=webdriver_service, options=chrome_options)
-    driver.get("https://fhy.wra.gov.tw/ReservoirPage_2011/Statistics.aspx")
+        reservoir = ["石門水庫", "寶山第二水庫", "永和山水庫", "鯉魚潭水庫", "德基水庫",
+        "南化水庫", "曾文水庫", "烏山頭水庫"]
+        soup = BeautifulSoup(response.content, 'html.parser')
+        table = soup.find('table', {'id': 'ctl00_cphMain_gvList'})
 
-    # print(driver.page_source)
-    # Locate the year dropdown menu
-    year_dropdown = driver.find_element(By.ID, 'ctl00_cphMain_ucDate_cboYear')
-
-    # Create a Select object for the dropdown
-    year_select = Select(year_dropdown)
-
-    # Select the desired year
-    year_select.select_by_value(str(year))
-
-    # Locate the month dropdown menu
-    month_dropdown = driver.find_element(By.ID, 'ctl00_cphMain_ucDate_cboMonth')
-
-    # Create a Select object for the dropdown
-    month_select = Select(month_dropdown)
-
-    # Select the desired month
-    month_select.select_by_value(str(month))
-
-    # Locate the day dropdown menu
-    day_dropdown = driver.find_element(By.ID, 'ctl00_cphMain_ucDate_cboDay')
-
-    # Create a Select object for the dropdown
-    day_select = Select(day_dropdown)
-
-    # Select the desired day
-    day_select.select_by_value(str(day))
-
-    hour_dropdown = driver.find_element(By.ID, 'ctl00_cphMain_ucDate_cboHour')
-
-    # Create a Select object for the dropdown
-    hour_select = Select(hour_dropdown)
-
-    # Select the desired hour
-    hour_select.select_by_value(str(hour))
-
-    # print(driver.page_source)
-    submit_button = driver.find_element(By.ID, 'ctl00_cphMain_btnQuery')
-    submit_button.click()
-
-    # Wait for the data to be displayed (You can use WebDriverWait if needed)
-    time.sleep(0.2)
-
-    # Extract the data from the page
-    data_element = driver.find_element(By.ID, 'ctl00_cphMain_gvList')
-    data = [] 
-    for d in data_element.text.split('\n'):
-        d = d.split(' ')
-        if d[0] in reservoir:
-            data += [d[:9]+d[10:]]
-            data[-1][1] += ('-' + data[-1][2])
-            for i in range(3, len(data[-1])):
-                if data[-1][i][0].isdigit():
-                    data[-1][i-1] = float(data[-1][i].replace(',', ''))
-                else:
-                    data[-1][i-1] = data[-1][i]
-            data[-1].pop()
-            
-    # print(data)
+        # Find all the rows in the table
+        rows = table.find_all('tr')
+        # print(rows)
+        # Iterate over the rows and extract the data for "石門水庫"
+        # print(len(rows))
+        data = []
+        for row in rows:
+            # print(row)
+            # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            columns = row.find_all('td')
+            # print(columns)
+            # print(len(columns))
+            # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            if len(columns) and columns[0].text.strip() in reservoir:
+                # Extract the required numeric data from the columns
+                data += [[columns[0].text.strip(), columns[1].text.strip().replace(' ', '-'), columns[2].text.strip(), columns[3].text.strip(), columns[4].text.strip(),
+                columns[5].text.strip(), columns[6].text.strip(), columns[7].text.strip(), columns[8].text.strip(), columns[9].text.strip(), columns[10].text.strip(),
+                columns[11].text.strip(), columns[12].text.strip(), columns[13].text.strip(), columns[14].text.strip(), columns[15].text.strip(), columns[16].text.strip(),
+                columns[17].text.strip()]]
+                for i in range(2, len(data[-1])):
+                    if len(data[-1][i]) and data[-1][i][0].isdigit():
+                        if i == 7:
+                            data[-1][i] = float(data[-1][i][:-2].replace(',', ''))
+                        else:
+                            data[-1][i] = float(data[-1][i].replace(',', ''))
+    else:
+        print('Request failed with status code:', response.status_code)       
+    # for d in data:
+    #     print(len(d))
     # print(len(data))
     return data
 
-def reservoir_crawler(year1, month1, day1, year2, month2, day2):
+def history_reservoir_crawler(year1, month1, day1, year2, month2, day2):
     '''
-    水情時間: time
-    有效蓄水量(萬立方公尺): effective_storage_capacity
-    蓄水百分比(%): storage_ratio
-
     竹 石門水庫、寶山第二水庫、(寶山水庫)、永和山水庫
     中 鯉魚潭水庫、德基水庫
     南 南化水庫、曾文水庫、烏山頭水庫
     '''
-    reservoir = ["石門水庫", "寶山第二水庫", "永和山水庫", "鯉魚潭水庫", "德基水庫",
-    "南化水庫", "曾文水庫", "烏山頭水庫"]
     month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
     data = []
@@ -336,7 +347,7 @@ def current_earthquake_crawler():
     area = ['北', '中', '南']
     # # Set up Chrome options
     chrome_options = Options()
-    # chrome_options.add_argument("--headless")  # Run Chrome in headless mode
+    chrome_options.add_argument("--headless")  # Run Chrome in headless mode
 
     webdriver_service = Service("chromedriver")
 
@@ -515,12 +526,92 @@ def history_earthquake_crawler():
 
     return df
 
+def test():
+
+    payload = {}
+    headers = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'}
+    url = 'https://fhy.wra.gov.tw/ReservoirPage_2011/Statistics.aspx'
+
+    response = requests.post(url, data=payload, headers=headers)
+
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, 'html.parser')
+        # Find the input element with name '__VIEWSTATE'
+        viewstate = soup.find('input', {'name': '__VIEWSTATE'})
+        # viewstategenerator = soup.find('input', {'name': '__VIEWSTATEGENERATOR'})
+        eventvalidation = soup.find('input', {'name': '__EVENTVALIDATION'})
+        payload['__VIEWSTATE'] = viewstate['value']
+        # payload['__VIEWSTATEGENERATOR'] = viewstategenerator['value']
+        payload['__EVENTVALIDATION'] = eventvalidation['value']
+        # print(viewstate['value'])
+        # print(eventvalidation['value'])
+        payload['__EVENTTARGET'] = 'ctl00$cphMain$btnQuery'
+        payload['ctl00$cphMain$cboSearch'] = '防汛重點水庫'
+        payload['ctl00$cphMain$ucDate$cboYear'] = '2023'
+        payload['ctl00$cphMain$ucDate$cboMonth'] = '6'
+        payload['ctl00$cphMain$ucDate$cboDay'] = '2'
+        payload['ctl00$cphMain$ucDate$cboHour'] = '4'
+        payload['ctl00$cphMain$ucDate$cboMinute'] = '0'
+        response = requests.post(url, data=payload, headers=headers)
+        # print(response.text)
+
+        reservoir = ["石門水庫", "寶山第二水庫", "永和山水庫", "鯉魚潭水庫", "德基水庫",
+        "南化水庫", "曾文水庫", "烏山頭水庫"]
+        soup = BeautifulSoup(response.content, 'html.parser')
+        table = soup.find('table', {'id': 'ctl00_cphMain_gvList'})
+
+        # Find all the rows in the table
+        rows = table.find_all('tr')
+        # print(rows)
+        # Iterate over the rows and extract the data for "石門水庫"
+        # print(len(rows))
+        data = []
+        for row in rows:
+            # print(row)
+            # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            columns = row.find_all('td')
+            # print(columns)
+            # print(len(columns))
+            # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            if len(columns) and columns[0].text.strip() in reservoir:
+                # Extract the required numeric data from the columns
+                data += [[columns[0].text.strip(), columns[1].text.strip().replace(' ', '-'), columns[2].text.strip(), columns[3].text.strip(), columns[4].text.strip(),
+                columns[5].text.strip(), columns[6].text.strip(), columns[7].text.strip(), columns[8].text.strip(), columns[9].text.strip(), columns[10].text.strip(),
+                columns[11].text.strip(), columns[12].text.strip(), columns[13].text.strip(), columns[14].text.strip(), columns[15].text.strip(), columns[16].text.strip(),
+                columns[17].text.strip()]]
+                for i in range(2, len(data[-1])):
+                    if data[-1][i][0].isdigit():
+                        if i == 7:
+                            data[-1][i] = float(data[-1][i][:-2].replace(',', ''))
+                        else:
+                            data[-1][i] = float(data[-1][i].replace(',', ''))
+
+        # print(data)
+        print(len(data))
+        # print(len(data[0]))
+
+        columns = ['水庫名稱', '時間', '本日集水區累積降雨量(mm)', '進流量(cms)', '水位(公尺)', '滿水位(公尺)', '有效蓄水量(萬立方公尺)', 
+        '蓄水百分比(%)', '取水流量(cms)', '發電放水口', '排砂道/PRO', '排洪隧道', '溢洪道', '其他', '小計', '目前狀態', '預定時間', '預定放流量(cms)']
+            
+                                
+        # print(len(columns))
+        df = pd.DataFrame(data, columns=columns)
+        df = df.replace('--', float('nan'))
+        df.set_index('水庫名稱', inplace=True)
+    else:
+        print('Request failed with status code:', response.status_code)
+
+
 
 
 if __name__ == "__main__":
-    # reservoir_crawler(2022, 4, 11, 2022, 4, 11)
+    start = time.time()
+    history_reservoir_crawler(2022, 11, 11, 2022, 12, 11)
+    print(f"Executed in {timedelta(seconds=time.time() - start)}")
     # electricity_crawler()
     # history_earthquake_crawler()
-    current_electricity_crawler()
+    # current_electricity_crawler()
     # current_earthquake_crawler()
     # craw_electricity_by_date(2023, 4, 11)
+    # test()
+    # craw_reservoir_by_date(2022, 12, 12, 18)
