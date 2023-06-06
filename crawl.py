@@ -16,7 +16,7 @@ from selenium.webdriver.support.select import Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-
+import json
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     # Radius of the Earth in kilometers
@@ -353,7 +353,11 @@ def current_earthquake_crawler():
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run Chrome in headless mode
 
-    webdriver_service = Service("chromedriver")
+    # load config from config.json
+    with open("./config.json") as config_file:
+        config = json.load(config_file)
+    
+    webdriver_service = Service(config['chromedriver_path'])
 
     # Create a new instance of the Chrome driver
     driver = webdriver.Chrome(service=webdriver_service, options=chrome_options)
