@@ -144,7 +144,9 @@ def craw_reservoir_by_date(year, month, day, hour = 0, reservoir = ["石門水�
                 columns[11].text.strip(), columns[12].text.strip(), columns[13].text.strip(), columns[14].text.strip(), columns[15].text.strip(), columns[16].text.strip(),
                 columns[17].text.strip()]]
                 for i in range(2, len(data[-1])):
-                    if len(data[-1][i]) and data[-1][i][0].isdigit():
+                    if not len(data[-1][i]):
+                        data[-1][i] = "--"
+                    elif len(data[-1][i]) and data[-1][i][0].isdigit():
                         if i == 7:
                             data[-1][i] = float(data[-1][i][:-2].replace(',', ''))
                         else:
