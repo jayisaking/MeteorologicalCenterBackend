@@ -10,6 +10,9 @@
     "endpoint_allowed_origins": ["*"],
 
     "data_allowed_origins": ["*"],
+    "crawl_every": 60,
+
+    "chromedriver_path": "./chromedriver",
 
     "reservoir_host": "127.0.0.1",
     "reservoir_port": 7000,
