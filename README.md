@@ -4,7 +4,7 @@
 
 - PostgreSQL
 - Python >= 3.8
-- chromedriver
+- chromedriver // 要跟自己的系統和chromedriver的版本一樣
 
 ## Installation
 
