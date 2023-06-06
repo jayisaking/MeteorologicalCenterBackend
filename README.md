@@ -3,17 +3,17 @@
 ## Requirements
 
 - PostgreSQL
-- Python >= 3.6
-- chromedriver
+- Python >= 3.8
+- chromedriver // 要跟自己的系統和chromedriver的版本一樣
 
 ## Installation
+
 1. Python requirements
-    ```shell
-    pip install requirements.txt
-    ```
+   ```shell
+   pip install requirements.txt
+   ```
 2. Database
-    
-    In config.json : 以下是PostgreSQL的參數，要根據自己build的時候改
+   In config.json : 以下是 PostgreSQL 的參數，要根據自己 build 的時候改
    ```shell
     "db_name": "test1", //是自己在PostgreSQL創建時 自己CREATE的DB
     "db_user": "jaysun", // 自己的名字
@@ -23,37 +23,44 @@
    ```
 3. Server
 
-    以下皆在config.json
-    ```
-    // 還沒設定 不用管
-    "endpoint_host": "127.0.0.1",
-    "endpoint_port": 8000,
-    "endpoint_allowed_origins": ["*"],
+   以下皆在 config.json
+
+   ```
+
+   "chromedriver_path": "./chromedriver", //自己的chromedriver的路徑
+
+   // 還沒設定 不用管
+   "endpoint_host": "127.0.0.1",
+   "endpoint_port": 8000,
+   "endpoint_allowed_origins": ["*"],
 
 
-    // CORS的，也不用改
-    "data_allowed_origins": ["*"],
+   // CORS的，也不用改
+   "data_allowed_origins": ["*"],
 
-    // 以下的host和post可以自己改
+   // 以下的host和post可以自己改
 
-    "reservoir_host": "127.0.0.1",
-    "reservoir_port": 7000,
+   "reservoir_host": "127.0.0.1",
+   "reservoir_port": 7000,
 
-    "electricity_host": "127.0.0.1",
-    "electricity_port": 8551,
+   "electricity_host": "127.0.0.1",
+   "electricity_port": 8551,
 
-    "earthquake_host": "127.0.0.1",
-    "earthquake_port": 8400,
+   "earthquake_host": "127.0.0.1",
+   "earthquake_port": 8400,
+   ```
 
 ## Run
 
-裝完PostgreSQL, Python；設定好config.json後
+裝完 PostgreSQL, Python；設定好 config.json 後
 
 1. Database Basic Setup
-   
+
    ```
    python setup.py
+   python online_crawler.py //定時爬
    ```
+
 
 2. Reservoir
 
@@ -62,48 +69,49 @@
    ```
 
 3. Earthquake
-   
+
    ```
    python earthquake.py
    ```
 
 4. Electricity
 
-    ```
-    python electricity.py
-    ```
+   ```
+   python electricity.py
+   ```
 
-
-### 以下的API在call的時候 如果資料庫裡沒有就需要重爬，特別Reservoir會花超久所以盡量不要用太久的時間區段，或是可以先call幾次讓它爬完存好再demo
+### 以下的 API 在 call 的時候 如果資料庫裡沒有就需要重爬，特別 Reservoir 會花超久所以盡量不要用太久的時間區段，或是可以先 call 幾次讓它爬完存好再 demo
 
 ## Resorvoir
 
-1. API: [host]:[port]/reservoir_fetch/   (都是用POST)
+1. API: [host]:[port]/reservoir_fetch/ (都是用 POST)
 
 2. Body Parameters
 
-    ```shell
-    reservoir_names: 水庫名字 (array of strings)
+   ```shell
+   reservoir_names: 水庫名字 (array of strings)
 
-    // 以下都是int
-    year_to: 終止年
-    month_to: 終止月
-    day_to: 終止日
-    hour_to: 終止時 (optional)
-    minute_to: 終止分 (optional)
-    second_to: 終止秒 (optional)
+   // 以下都是int
+   year_to: 終止年
+   month_to: 終止月
+   day_to: 終止日
+   hour_to: 終止時 (optional)
+   minute_to: 終止分 (optional)
+   second_to: 終止秒 (optional)
 
-    past_hours: 過去幾個小時 (optional, 填了以下就不用填)
+   past_hours: 過去幾個小時 (optional, 填了以下就不用填)
 
-    year_from: 起始年
-    month_from: 起始月
-    day_from: 起始日
-    hour_from: 起始時 
-    minute_from: 起始分 
-    second_from: 起始秒 
+   year_from: 起始年
+   month_from: 起始月
+   day_from: 起始日
+   hour_from: 起始時
+   minute_from: 起始分
+   second_from: 起始秒
 
-    ```
+   ```
+
 3. Example Return
+
 ```
 {
   "data": [
@@ -287,35 +295,36 @@
 }
 ```
 
-
 ## Electricity
 
-1. API: [host]:[port]/electricity_fetch/   (都是用POST)
+1. API: [host]:[port]/electricity_fetch/ (都是用 POST)
 
 2. Body Parameters
 
-    ```shell
-    power_plant_regions: 地點 (array of strings, Ex: ['北'])
+   ```shell
+   power_plant_regions: 地點 (array of strings, Ex: ['北'])
 
-    // 以下都是int
-    year_to: 終止年
-    month_to: 終止月
-    day_to: 終止日
-    hour_to: 終止時 (optional)
-    minute_to: 終止分 (optional)
-    second_to: 終止秒 (optional)
+   // 以下都是int
+   year_to: 終止年
+   month_to: 終止月
+   day_to: 終止日
+   hour_to: 終止時 (optional)
+   minute_to: 終止分 (optional)
+   second_to: 終止秒 (optional)
 
-    past_days: 過去幾天 (optional, 填了以下就不用填)
+   past_days: 過去幾天 (optional, 填了以下就不用填)
 
-    year_from: 起始年
-    month_from: 起始月
-    day_from: 起始日
-    hour_from: 起始時 
-    minute_from: 起始分 
-    second_from: 起始秒 
+   year_from: 起始年
+   month_from: 起始月
+   day_from: 起始日
+   hour_from: 起始時
+   minute_from: 起始分
+   second_from: 起始秒
 
-    ```
+   ```
+
 3. Example Return
+
 ```
 {
     "data": [
@@ -354,39 +363,40 @@
 
 ```
 
-
 ## Earthquake
 
-1. API: [host]:[port]/earthquake_fetch/   (都是用POST)
+1. API: [host]:[port]/earthquake_fetch/ (都是用 POST)
 
 2. Body Parameters
 
-    ```shell
-    earthquake_regions: 地點 (array of strings, Ex: ['北'])
+   ```shell
+   earthquake_regions: 地點 (array of strings, Ex: ['北'])
 
-    // 以下都是int
-    year_to: 終止年
-    month_to: 終止月
-    day_to: 終止日
-    hour_to: 終止時 (optional)
-    minute_to: 終止分 (optional)
-    second_to: 終止秒 (optional)
+   // 以下都是int
+   year_to: 終止年
+   month_to: 終止月
+   day_to: 終止日
+   hour_to: 終止時 (optional)
+   minute_to: 終止分 (optional)
+   second_to: 終止秒 (optional)
 
-    past_hours: 過去幾小時
-    past_days: 過去幾天 
-    past_months: 過去幾月
-    
-    (optional, 上面三個填了一個以上以下就不用填)
+   past_hours: 過去幾小時
+   past_days: 過去幾天
+   past_months: 過去幾月
 
-    year_from: 起始年
-    month_from: 起始月
-    day_from: 起始日
-    hour_from: 起始時 
-    minute_from: 起始分 
-    second_from: 起始秒 
+   (optional, 上面三個填了一個以上以下就不用填)
 
-    ```
+   year_from: 起始年
+   month_from: 起始月
+   day_from: 起始日
+   hour_from: 起始時
+   minute_from: 起始分
+   second_from: 起始秒
+
+   ```
+
 3. Example Returns
+
 ```shell
 {
     "data": [

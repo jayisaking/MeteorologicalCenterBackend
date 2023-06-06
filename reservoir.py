@@ -122,7 +122,7 @@ def crawl_reservoir_and_store(time_start, time_end, reservoirs):
     insert_dataframe_to_database(data)
     
 def insert_dataframe_to_database(df: pd.DataFrame, time_format = "%Y-%m-%d-%H:%M:%S"):
-    df.fillna(-1, inplace=True)
+    df.fillna(- 1, inplace=True)
     
     # Connect to the database
     with psycopg2.connect(database=config['db_name'], user=config['db_user'], password=config['db_password'], host=config['db_host'], port=config['db_port']) as conn:
@@ -140,6 +140,9 @@ def insert_dataframe_to_database(df: pd.DataFrame, time_format = "%Y-%m-%d-%H:%M
                 
             conn.commit()
 
-
 if __name__ == "__main__":
     uvicorn.run(app = "reservoir:app", host = config["reservoir_host"], port = config["reservoir_port"], reload = True)
+    
+    
+    
+    
