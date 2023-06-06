@@ -144,7 +144,9 @@ def craw_reservoir_by_date(year, month, day, hour=0):
                 columns[11].text.strip(), columns[12].text.strip(), columns[13].text.strip(), columns[14].text.strip(), columns[15].text.strip(), columns[16].text.strip(),
                 columns[17].text.strip()]]
                 for i in range(2, len(data[-1])):
-                    if len(data[-1][i]) and data[-1][i][0].isdigit():
+                    if not len(data[-1][i]):
+                        data[-1][i] = "--"
+                    elif len(data[-1][i]) and data[-1][i][0].isdigit():
                         if i == 7:
                             data[-1][i] = float(data[-1][i][:-2].replace(',', ''))
                         else:
@@ -153,7 +155,9 @@ def craw_reservoir_by_date(year, month, day, hour=0):
         print('Request failed with status code:', response.status_code)       
     # for d in data:
     #     print(len(d))
+    print(data)
     # print(len(data))
+    
     return data
 
 def history_reservoir_crawler(year1, month1, day1, year2, month2, day2):
@@ -526,92 +530,15 @@ def history_earthquake_crawler():
 
     return df
 
-def test():
-
-    payload = {}
-    headers = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'}
-    url = 'https://fhy.wra.gov.tw/ReservoirPage_2011/Statistics.aspx'
-
-    response = requests.post(url, data=payload, headers=headers)
-
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, 'html.parser')
-        # Find the input element with name '__VIEWSTATE'
-        viewstate = soup.find('input', {'name': '__VIEWSTATE'})
-        # viewstategenerator = soup.find('input', {'name': '__VIEWSTATEGENERATOR'})
-        eventvalidation = soup.find('input', {'name': '__EVENTVALIDATION'})
-        payload['__VIEWSTATE'] = viewstate['value']
-        # payload['__VIEWSTATEGENERATOR'] = viewstategenerator['value']
-        payload['__EVENTVALIDATION'] = eventvalidation['value']
-        # print(viewstate['value'])
-        # print(eventvalidation['value'])
-        payload['__EVENTTARGET'] = 'ctl00$cphMain$btnQuery'
-        payload['ctl00$cphMain$cboSearch'] = '防汛重點水庫'
-        payload['ctl00$cphMain$ucDate$cboYear'] = '2023'
-        payload['ctl00$cphMain$ucDate$cboMonth'] = '6'
-        payload['ctl00$cphMain$ucDate$cboDay'] = '2'
-        payload['ctl00$cphMain$ucDate$cboHour'] = '4'
-        payload['ctl00$cphMain$ucDate$cboMinute'] = '0'
-        response = requests.post(url, data=payload, headers=headers)
-        # print(response.text)
-
-        reservoir = ["石門水庫", "寶山第二水庫", "永和山水庫", "鯉魚潭水庫", "德基水庫",
-        "南化水庫", "曾文水庫", "烏山頭水庫"]
-        soup = BeautifulSoup(response.content, 'html.parser')
-        table = soup.find('table', {'id': 'ctl00_cphMain_gvList'})
-
-        # Find all the rows in the table
-        rows = table.find_all('tr')
-        # print(rows)
-        # Iterate over the rows and extract the data for "石門水庫"
-        # print(len(rows))
-        data = []
-        for row in rows:
-            # print(row)
-            # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            columns = row.find_all('td')
-            # print(columns)
-            # print(len(columns))
-            # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            if len(columns) and columns[0].text.strip() in reservoir:
-                # Extract the required numeric data from the columns
-                data += [[columns[0].text.strip(), columns[1].text.strip().replace(' ', '-'), columns[2].text.strip(), columns[3].text.strip(), columns[4].text.strip(),
-                columns[5].text.strip(), columns[6].text.strip(), columns[7].text.strip(), columns[8].text.strip(), columns[9].text.strip(), columns[10].text.strip(),
-                columns[11].text.strip(), columns[12].text.strip(), columns[13].text.strip(), columns[14].text.strip(), columns[15].text.strip(), columns[16].text.strip(),
-                columns[17].text.strip()]]
-                for i in range(2, len(data[-1])):
-                    if data[-1][i][0].isdigit():
-                        if i == 7:
-                            data[-1][i] = float(data[-1][i][:-2].replace(',', ''))
-                        else:
-                            data[-1][i] = float(data[-1][i].replace(',', ''))
-
-        # print(data)
-        print(len(data))
-        # print(len(data[0]))
-
-        columns = ['水庫名稱', '時間', '本日集水區累積降雨量(mm)', '進流量(cms)', '水位(公尺)', '滿水位(公尺)', '有效蓄水量(萬立方公尺)', 
-        '蓄水百分比(%)', '取水流量(cms)', '發電放水口', '排砂道/PRO', '排洪隧道', '溢洪道', '其他', '小計', '目前狀態', '預定時間', '預定放流量(cms)']
-            
-                                
-        # print(len(columns))
-        df = pd.DataFrame(data, columns=columns)
-        df = df.replace('--', float('nan'))
-        df.set_index('水庫名稱', inplace=True)
-    else:
-        print('Request failed with status code:', response.status_code)
-
-
-
 
 if __name__ == "__main__":
-    start = time.time()
-    history_reservoir_crawler(2022, 11, 11, 2022, 12, 11)
-    print(f"Executed in {timedelta(seconds=time.time() - start)}")
+    # start = time.time()
+    history_reservoir_crawler(2023, 6, 1, 2023, 6, 5)
+    # print(f"Executed in {timedelta(seconds=time.time() - start)}")
     # electricity_crawler()
     # history_earthquake_crawler()
     # current_electricity_crawler()
     # current_earthquake_crawler()
     # craw_electricity_by_date(2023, 4, 11)
     # test()
-    # craw_reservoir_by_date(2022, 12, 12, 18)
+    # craw_reservoir_by_date(2023, 6, 5, 18)
